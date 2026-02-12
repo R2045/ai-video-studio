@@ -45,9 +45,34 @@ export default function Home() {
           />
         </div>
 
-        <button className="bg-green-600 px-6 py-2 rounded">
-          Export Video (Backend Needed)
-        </button>
+        <button
+  onClick={async () => {
+    if (!video) return alert("Upload a video first");
+
+    const fileInput = document.querySelector('input[type="file"]');
+    const formData = new FormData();
+    formData.append("video", fileInput.files[0]);
+
+    const response = await fetch("http://127.0.0.1:5000/trim", {
+      method: "POST",
+      body: formData,
+    });
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "trimmed.mp4";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }}
+  style={{ background: "#0f0", padding: "0.5rem 1rem", marginTop: "1rem" }}
+>
+  Export Video (Trim)
+</button>
+
 
       </div>
 

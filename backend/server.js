@@ -11,27 +11,35 @@ app.use(cors());
 // Folder to store uploaded videos temporarily
 const upload = multer({ dest: "uploads/" });
 
-// Simple trim API
-app.post("/trim", upload.single("video"), (req, res) => {
-  const inputPath = req.file.path;
-  const outputPath = path.join("uploads", "trimmed.mp4");
 
-  ffmpeg(inputPath)
-    .setStartTime(0)      // start at 0 seconds
-    .setDuration(5)       // trim to 5 seconds
-    .output(outputPath)
-    .on("end", () => {
-      res.download(outputPath, "trimmed.mp4", (err) => {
-        // Cleanup files
-        fs.unlinkSync(inputPath);
-        fs.unlinkSync(outputPath);
-      });
-    })
-    .on("error", (err) => {
-      console.error(err);
-      res.status(500).send("Error processing video");
-    })
-    .run();
+app.post("/trim", upload.single("video"), (req, res) => {
+  try {
+    const inputPath = path.resolve(req.file.path);           // absolute path
+    const outputPath = path.resolve("uploads/trimmed.mp4");  // absolute path
+
+    ffmpeg(inputPath)
+      .videoCodec("libx264")   // explicitly set video codec
+      .audioCodec("aac")       // explicitly set audio codec
+      .format("mp4")           // ensure proper MP4 format
+      .setStartTime(0)
+      .setDuration(5)
+      .output(outputPath)
+      .on("end", () => {
+        console.log("Trim done!");
+        res.download(outputPath, "trimmed.mp4", (err) => {
+          fs.unlinkSync(inputPath);
+          fs.unlinkSync(outputPath);
+        });
+      })
+      .on("error", (err) => {
+        console.error("FFmpeg Error:", err);
+        res.status(500).send("Error processing video");
+      })
+      .run();
+  } catch (error) {
+    console.error("Server Error:", error);
+    res.status(500).send("Server error");
+  }
 });
 
 app.listen(5000, () => {
